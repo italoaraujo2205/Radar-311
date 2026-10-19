@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "service-ops-analytics"
+version = "0.1.0"
+description = "Analise operacional reproduzivel das solicitacoes NYC 311"
+requires-python = ">=3.11"
+dependencies = ["duckdb>=1.2,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[project.scripts]
+service-ops = "service_ops.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

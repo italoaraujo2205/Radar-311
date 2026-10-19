@@ -1,0 +1,21 @@
+{
+  "extraction": {
+    "source": "https://data.cityofnewyork.us/resource/erm2-nwe9.json",
+    "start_inclusive": "2025-01-01",
+    "end_exclusive": "2025-02-01",
+    "extracted_at_utc": "2026-10-19T13:28:04.676042+00:00",
+    "rows": 348180,
+    "sha256_jsonl_uncompressed": "e378d8467e705146d06a0199dc761f52563f8dc8e606151ecb265131b8d47c44",
+    "raw_file": "nyc311_2025-01-01_2025-02-01.jsonl.gz"
+  },
+  "quality": {
+    "raw_rows": 348180,
+    "accepted_rows": 348081,
+    "rejected_rows": 99,
+    "duplicate_rows": 0,
+    "future_rows": 0,
+    "unknown_borough_rows": 177,
+    "closed_without_timestamp_rows": 1051,
+    "as_of": "2026-10-19 00:00:00"
+  }
+}

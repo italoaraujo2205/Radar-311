@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Service Ops | NYC 311</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#172337;background:#f3f6fa}
+    *{box-sizing:border-box}body{margin:0}header{background:#122235;color:#fff;padding:2.4rem max(5vw,20px)}
+    header h1{font-size:clamp(2rem,4vw,3.7rem);margin:.4rem 0}header p{max-width:780px;line-height:1.55;color:#c9d6e5}
+    main{max-width:1350px;margin:auto;padding:2rem 4vw}h2{font-size:1.3rem;margin:0 0 1rem}
+    .eyebrow{color:#8de0cb;text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;font-weight:700}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+    .card,.panel{background:#fff;border:1px solid #dce4ed;border-radius:16px;padding:20px;box-shadow:0 5px 18px #15263a0a}
+    .card strong{display:block;font-size:2rem;margin:9px 0;color:#075b6c}.card small,.muted{color:#5d6d7f}
+    .panel{margin-top:20px}.row{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;justify-content:space-between}
+    select{border:1px solid #bbcbd8;border-radius:8px;padding:10px;background:#fff;color:#172337;min-width:170px}
+    label{font-size:.84rem;color:#40536b;display:grid;gap:5px;font-weight:600}
+    .chart{height:230px;width:100%;margin-top:14px;border-bottom:1px solid #c5d2df}
+    .legend{font-size:.78rem;color:#5d6d7f;margin-top:8px}
+    table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{padding:11px 8px;text-align:left;border-bottom:1px solid #e7ecf1}th{color:#42566b}
+    td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+    .tablewrap{overflow:auto}.negative{color:#ad3c35}.positive{color:#007968}
+    .pill{display:inline-block;background:#e5f4ef;color:#075f50;padding:4px 9px;border-radius:20px;font-size:.78rem}
+    footer{font-size:.85rem;color:#596a7b;line-height:1.6;padding:1rem 0 3rem}
+    a{color:#087084}@media(max-width:650px){.tablewrap{font-size:.76rem}.hide-sm{display:none}}
+  </style>
+</head>
+<body>
+  <header><div class="eyebrow">Estudo operacional · NYC 311</div>
+    <h1>Onde investigar a demora<br>no atendimento?</h1>
+    <p>Uma leitura das solicitações criadas em janeiro de 2025. Volume, encerramento em 72 horas e comparação por tipo de problema. Os resultados ajudam a escolher onde investigar; não atribuem causas sozinhos.</p>
+  </header>
+  <main>
+    <div class="grid" id="kpis"></div>
+    <section class="panel"><h2>Entrada diária de solicitações</h2><p class="muted">O volume indica pressão de demanda, mas também varia com o comportamento de registro.</p><svg class="chart" id="trend" role="img" aria-label="Série de solicitações por dia" viewBox="0 0 900 230" preserveAspectRatio="none"></svg><div class="legend" id="trend-range"></div></section>
+    <section class="panel"><div class="row"><div><h2>Onde concentrar a investigação</h2><p class="muted">Agência × problema × bairro; mínimo de 300 solicitações elegíveis.</p></div><div class="row"><label>Agência<select id="agency"></select></label><label>Bairro<select id="borough"></select></label><label>Ordenar por<select id="sort"><option value="volume">Casos fora de 72h</option><option value="rate">Menor taxa em 72h</option><option value="requests">Maior volume</option></select></label></div></div><div class="tablewrap"><table><thead><tr><th>Agência / problema</th><th>Bairro</th><th class="num">Casos</th><th class="num">Não encerrados em 72h</th><th class="num">Taxa 72h</th><th class="num hide-sm">p90 de fechados (h)</th></tr></thead><tbody id="priority"></tbody></table></div><p class="muted" id="shown"></p></section>
+    <section class="panel"><h2>Comparação entre bairros com ajuste de composição</h2><p class="muted">Para cada agência e tipo de problema, a referência usa apenas outros bairros. Exige pelo menos 30 casos de referência, 500 casos comparáveis e 80% de cobertura.</p><div class="tablewrap"><table><thead><tr><th>Bairro</th><th class="num">Casos comparáveis</th><th class="num">Cobertura</th><th class="num">Observados 72h</th><th class="num">Esperados 72h</th><th class="num">Diferença em p.p.</th></tr></thead><tbody id="mix"></tbody></table></div></section>
+    <footer>72 horas é uma janela de análise deste projeto, não um SLA oficial. O campo <code>due_date</code> da fonte é prazo de atualização, não de resolução. O p90 considera somente casos encerrados. Uma diferença no painel não demonstra causalidade ou qualidade geral do serviço. <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-to-Present/erm2-nwe9">Fonte: NYC Open Data</a>.</footer>
+  </main>
+  <script>
+    const d=/*DATA_PAYLOAD*/;
+    const fmt=new Intl.NumberFormat('pt-BR'), pct=x=>`${Number(x).toFixed(1).replace('.',',')}%`;
+    const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const k=d.kpi, rate=100*Number(k.closed)/Number(k.eligible);
+    document.querySelector('#kpis').innerHTML=[
+      ['Solicitações analisadas',fmt.format(k.total),'Casos válidos'],
+      ['Encerradas em 72h',pct(rate),`${fmt.format(k.eligible)} casos com janela completa`],
+      ['Sem data e não encerradas',fmt.format(k.open_aged),'Status diferente de CLOSED; criadas há mais de 72h'],
+      ['Encerradas sem data',fmt.format(k.unknown_close),'Excluídas da taxa: prazo não verificável'],
+      ['Problemas analisáveis',fmt.format(new Set(d.problems.map(x=>x.agency+'|'+x.problem)).size),'Grupos com 300+ casos em algum bairro']
+    ].map(x=>`<div class="card"><small>${x[0]}</small><strong>${x[1]}</strong><small>${x[2]}</small></div>`).join('');
+    const vals=d.daily.map(x=>x.requests), max=Math.max(...vals,1), min=Math.min(...vals,0),
+      xy=d.daily.map((x,i)=>`${25+i*850/Math.max(1,d.daily.length-1)},${200-175*x.requests/max}`).join(' ');
+    document.querySelector('#trend').innerHTML=`<line x1="25" y1="200" x2="875" y2="200" stroke="#bdcad6"/><polyline points="${xy}" fill="none" stroke="#007d86" stroke-width="3" vector-effect="non-scaling-stroke"/><text x="25" y="220" fill="#526578" font-size="14">${d.daily[0]?.day||''}</text><text x="770" y="220" fill="#526578" font-size="14">${d.daily.at(-1)?.day||''}</text>`;
+    document.querySelector('#trend-range').textContent=`Entre ${fmt.format(min)} e ${fmt.format(max)} solicitações por dia`;
+    function selectOptions(node,items){node.innerHTML='<option value="">Todos</option>'+[...new Set(items)].sort().map(x=>`<option value="${safe(x)}">${safe(x)}</option>`).join('')}
+    const agency=document.querySelector('#agency'),borough=document.querySelector('#borough'),sort=document.querySelector('#sort');
+    selectOptions(agency,d.problems.map(x=>x.agency));selectOptions(borough,d.problems.map(x=>x.borough));
+    function render(){let rows=d.problems.filter(x=>(!agency.value||x.agency===agency.value)&&(!borough.value||x.borough===borough.value));
+      rows.sort((a,b)=>sort.value==='rate'?a.pct_closed_72h-b.pct_closed_72h:sort.value==='requests'?b.eligible_72h-a.eligible_72h:(b.eligible_72h-b.closed_72h)-(a.eligible_72h-a.closed_72h));
+      document.querySelector('#priority').innerHTML=rows.slice(0,20).map(x=>`<tr><td>${safe(x.agency)} / ${safe(x.problem)}</td><td>${safe(x.borough)}</td><td class="num">${fmt.format(x.eligible_72h)}</td><td class="num">${fmt.format(x.eligible_72h-x.closed_72h)}</td><td class="num">${pct(x.pct_closed_72h)}</td><td class="num hide-sm">${x.p90_closed_hours??'—'}</td></tr>`).join('');
+      document.querySelector('#shown').textContent=`${Math.min(rows.length,20)} grupos exibidos de ${rows.length} após filtros.`}
+    [agency,borough,sort].forEach(el=>el.addEventListener('change',render));render();
+    document.querySelector('#mix').innerHTML=d.mix.map(x=>`<tr><td>${safe(x.borough)}</td><td class="num">${fmt.format(x.comparable)}</td><td class="num">${pct(x.coverage_pct)}</td><td class="num">${fmt.format(x.observed)}</td><td class="num">${fmt.format(x.expected)}</td><td class="num ${x.adjusted_gap_pp<0?'negative':'positive'}">${x.adjusted_gap_pp>0?'+':''}${x.adjusted_gap_pp}</td></tr>`).join('');
+  </script>
+</body></html>
